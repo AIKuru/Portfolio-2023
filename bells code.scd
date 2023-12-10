@@ -1,0 +1,142 @@
+// bell 1
+// ratio 1 = 220 / 650
+// pt1 220 / 650.postln; -> 0.33846153846154
+// pt2 220 / 745.postln; -> 0.29530201342282
+// pt3 220 / 825.postln; -> 0.26666666666667
+
+// xc1 220 / 270.postln; -> 0.81481481481481
+// xc1 220 / 250.postln; -> 0.88
+
+// xc2 220 / 450.postln; -> 0.48888888888889
+// xc2 220 / 875.postln; -> 0.25142857142857
+
+// 220
+// 250
+// 270    330 - perfect fifth
+// 450   ~octave
+
+// doubled
+// 440
+// 500
+// 540
+// 900
+
+// 650
+// 745
+// 825
+// 875  ~octave
+
+// doubled
+// 1300
+// 1490
+// 1650
+// 1750
+
+
+// 0, 0.93, 1.964, 2.144, 2.98, 3.3, 3.5, 3.68
+
+// crash
+//	pt1 = 567
+//	pt2 = 637
+//  pt3 = 821
+
+//	xc1 = 112
+//	xc2 = 398
+//	xc3 = 901
+
+//	md1 = 112
+//	md2 = 264
+//	md3 = 344
+//	md4 = 612
+
+k = Scale.new(
+    #[0, 2, 4, 5, 7, 9, 10],
+    12,
+    Tuning.new([0, 0.8, 2.1, 3, 4.05, 5.2, 6, 6.75, 8.3, 9, 10.08, 11.5]),
+    "bell"
+);
+
+Pbind(
+	\instrument, "bell1",
+    \freq, Pwhite(300, 1000),
+    \dur, Pwhite(6, 12),
+    \amp, Pwhite(0.1, 0.02)
+).play;
+
+SynthDef.new(\bell1, {
+	arg freq = 220, amp = 0.1, releaseTime = 10, out, dur, trig, freqscale, freqmul, freqoffset, filtenv, release, trigger, lowcutfreq, highcutfreq, drive;
+	var signal, env1, stick, env2, env3, env4,
+	fundamental, pt1, pt2, pt3, pt4,
+	md1, md2, md3, md4,
+	xc1, xc2, xc3;
+	env1 = EnvGen.ar(Env.perc(0.1, releaseTime), doneAction:2);
+	env2 = EnvGen.ar(Env.perc(0.1, releaseTime/3), doneAction:0);
+	env3 = EnvGen.ar(Env.perc(0.2, releaseTime/6.1), doneAction:0);
+
+	env4 = EnvGen.ar(Env.perc(0.001, 0,2), doneAction:0);
+
+	stick = LPF.ar(WhiteNoise.ar(0.1, env4));
+	stick = Ringz.ar(stick, freq*2);
+	stick = stick * amp/10;
+
+	fundamental = SinOsc.ar(freq) * env1 * amp;
+
+	pt1 = SinOsc.ar(536) * env2 * amp/2;
+	pt2 = SinOsc.ar(745) * env2 * amp/2.1;
+	pt3 = SinOsc.ar(825) * env3 * amp/2.4;
+
+	xc1 = SinOsc.ar(XLine.kr(270, 250, 0,2, doneAction:2)) * env2 * amp/5;
+	xc2 = SinOsc.ar(XLine.kr(450, 491, 0,1, doneAction:2)) * env2 * amp/4;
+	xc3 = SinOsc.ar(XLine.kr(875, 885, 0,1, doneAction:2)) * env3 * amp/5.1;
+
+
+	md1 = (( SinOsc.ar(164) + SinOsc.ar(174) ) * env2 * amp/3);
+	md2 = (( SinOsc.ar(300) + SinOsc.ar(301)  ) * env2 * amp/3);
+	md3 = (( SinOsc.ar(628) + SinOsc.ar(638)  ) * env2 * amp/3);
+	md4 = (( SinOsc.ar(656) + SinOsc.ar(666) ) * env2 * amp/3);
+
+	signal = fundamental + pt1 + pt2 + pt3 + xc1 + xc2 + xc3
+	+ md1 + md2 + md3 + md4 + stick;
+
+		Out.ar(out, signal.dup);
+}).add;
+
+(
+SynthDef.new(\bell1inharmonic, {
+	arg freq = 220, amp = 0.1, releaseTime = 10, out, dur, trig, freqscale, freqmul, freqoffset, filtenv, release, trigger, lowcutfreq, highcutfreq, drive;
+	var signal, env1, stick, env2, env3, env4,
+	fundamental, pt1, pt2, pt3, pt4,
+	md1, md2, md3, md4,
+	xc1, xc2, xc3;
+	env1 = EnvGen.ar(Env.perc(0.1, releaseTime), doneAction:2);
+	env2 = EnvGen.ar(Env.perc(0.1, releaseTime/3), doneAction:0);
+	env3 = EnvGen.ar(Env.perc(0.2, releaseTime/6.1), doneAction:0);
+
+	env4 = EnvGen.ar(Env.perc(0.001, 0,2), doneAction:0);
+
+	stick = LPF.ar(WhiteNoise.ar(0.1, env4));
+	stick = Ringz.ar(stick, freq*2);
+	stick = stick * amp/10;
+
+	fundamental = SinOsc.ar(rrand(freq, freq*10)) * env1 *amp;
+
+	pt1 = SinOsc.ar(LFNoise1.kr(freq));
+	pt2 = SinOsc.ar(LFNoise1.kr(2).range(freq/3, freq)) * env2 * amp/2.1;
+	pt3 = SinOsc.ar(LFNoise1.kr(2.5).range(freq/4, freq)) * env3 * amp/2.4;
+
+	// xc1 = SinOsc.ar(LFNoise0.kr(ffreq* rrand(0.1, 2), ffreq* rrand(0.1, 2), doneAction:2)) * env2 * amp/5;
+	// xc2 = SinOsc.ar(LFNoise0.kr(ffreq* rrand(0.2, 2.2), ffreq* rrand(0.1, 2), doneAction:2)) * env2 * amp/5.1;
+	// xc3 = SinOsc.ar(LFNoise0.(ffreq* rrand(0.3, 3), ffreq* rrand(0.1, 2), doneAction:2)) * env2 * amp/5.2;
+
+	md1 = ( SinOsc.ar(freq*1/2) + SinOsc.ar(freq*1 + 3)) * env2 * amp/3;
+	md2 = ( SinOsc.ar(freq*3) + SinOsc.ar(freq*3 + 3)) * env2 * amp/3;
+	md3 = ( SinOsc.ar(freq*6) + SinOsc.ar(freq*6 +3)) * env2 * amp/3;
+md4 = ( SinOsc.ar(freq*7) + SinOsc.ar.(freq*7 +3)) * env2 * amp/3;
+
+	signal = fundamental + pt1 + pt2 + pt3
+	// + xc1 + xc2 + xc3
+	+ md1 + md2 + md3 + md4 + stick;
+
+		Out.ar(out, signal.dup);
+}).add;
+)
